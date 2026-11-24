@@ -1,0 +1,49 @@
+# Build & Binary Directories
+build/
+bin/
+out/
+generated/
+dist/
+*.o
+*.obj
+*.exe
+*.out
+*.app
+
+# Disc Images & Game Assets (Legal compliance)
+*.iso
+*.ISO
+*.bin
+*.BIN
+*.cue
+*.CUE
+*.chd
+*.CHD
+*.cso
+*.CSO
+*.elf
+*.ELF
+games/
+discs/
+iso/
+
+# Save Data & Local User Configs
+saves/
+*.mem
+*.mcd
+keys.ini
+config.ini
+user_settings.ini
+
+# Submodules build artifacts
+third_party/**/build/
+third_party/**/bin/
+
+# IDE & Editor caches
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db

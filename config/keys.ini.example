@@ -1,0 +1,17 @@
+# THDJRecomp Controller & Keyboard Configuration
+[Keyboard]
+UP = W
+DOWN = S
+LEFT = A
+RIGHT = D
+OLLIE = SPACE
+GRAB = J
+FLIP = K
+GRIND = L
+SPIN_LEFT = Q
+SPIN_RIGHT = E
+PAUSE = ESCAPE
+
+[Gamepad]
+DEADZONE = 0.15
+RUMBLE = 1

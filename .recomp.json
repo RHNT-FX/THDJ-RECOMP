@@ -1,0 +1,22 @@
+{
+  "name": "THDJRecomp",
+  "title": "Tony Hawk's Downhill Jam",
+  "short_title": "THDJ",
+  "platform": "PS2",
+  "supported_serial": [
+    "SLUS-21467",
+    "SLES-54497"
+  ],
+  "version": "0.1.0",
+  "description": "Native PC static recompilation port of Tony Hawk's Downhill Jam (PlayStation 2) for Linux and Windows.",
+  "authors": [
+    "rehant"
+  ],
+  "features": {
+    "native_resolution": true,
+    "widescreen_support": true,
+    "unlocked_fps": false,
+    "custom_bindings": true,
+    "vulkan_rendering": true
+  }
+}
