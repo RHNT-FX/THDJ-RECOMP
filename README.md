@@ -1,114 +1,134 @@
-# THDJRecomp
+# 🛹 THDJRecomp: Tony Hawk's Downhill Jam PC Port
 
 <p align="center">
-  <b>Native PC Port / Static Recompilation of <i>Tony Hawk's Downhill Jam</i> (PlayStation 2)</b>
-  <br />
-  Targeting modern 64-bit Linux and Windows platforms.
+  <b>Native Static Recompilation of <i>Tony Hawk's Downhill Jam</i> (PlayStation 2) for PC (Linux & Windows)</b><br>
+  <i>Researched, reverse-engineered, and ported natively by RHNT-FX</i>
 </p>
 
 ---
 
-## 🛹 Overview
-**THDJRecomp** is an open-source static recompilation project targeting the PlayStation 2 release of **Tony Hawk's Downhill Jam** (*SLUS-21456* / CRC `7D13310A`). 
+## 🎮 What is THDJRecomp? (For Everyone)
 
-Unlike emulation, static recompilation decodes the MIPS R5900 Emotion Engine machine code directly into native C++ instructions ahead-of-time. This provides:
-- **Silky smooth native performance** on Windows & Linux without typical emulator overhead.
-- **Native Resolution & Ultrawide scaling** with proper aspect-ratio correction.
-- **Low latency controller support** via modern SDL2 input mappings.
-- **Cross-platform rendering** powered by WebGPU / Vulkan backend.
-- **Runtime script patches** fixing the startup TCR memory card check hang and IOP audio streaming allocations.
+Have you ever wanted to play **Tony Hawk's Downhill Jam** on your modern PC without dealing with heavy emulator setup, frame drops, or input lag? 
 
-> **Note:** This repository **does NOT contain any copyrighted assets, ISO images, or proprietary game binaries**. Users must provide their own legally acquired PlayStation 2 disc image.
+**THDJRecomp is NOT an emulator.** 
+
+Instead of running an emulator (like PCSX2) that pretends to be a PlayStation 2 console while eating up your CPU and battery, **THDJRecomp statically recompiles** the original PS2 machine code directly into modern C++ code.
+
+In simple terms:
+- **It runs like a real PC game:** Compiles directly into a native executable for Linux and Windows.
+- **Buttery smooth 60 FPS:** Extreme performance with minimal CPU and GPU usage.
+- **Modern Graphics Backend:** Powered by WebGPU & Vulkan with true widescreen aspect-ratio support.
+- **Plug & Play Controllers:** Modern SDL2 gamepad and keyboard support right out of the box.
+
+> **Note:** This repository **does NOT contain any copyrighted assets, ISO images, or proprietary game binaries**. Users must supply their own legally acquired PlayStation 2 disc image (*SLUS-21456* / CRC `7D13310A`).
 
 ---
 
-## 📂 Repository Structure
+## 🔍 Behind The Scenes: How I Solved the Startup Freeze
 
-```text
-THDJRecomp/
-├── .github/workflows/        # Automated CI builds (Linux & Windows .exe artifacts)
-├── CMakeLists.txt            # Root cross-platform CMake build configuration
-├── .recomp.json              # Game and recompilation metadata
-├── config/                   # Default configuration templates (keys.ini.example)
-├── covers/                   # Cover art, logos, and UI assets
-├── patches/                  # Engine & runtime patches:
-│   ├── modload_alloc_load_memory.patch       # IOP modload Alloc/FreeLoadMemory for EZPCM
-│   └── thdj_disc_boot_memcard_bypass.patch   # Bypass boot QuickBasic memcard hang
-├── tools/
-│   ├── build.sh              # Linux / Parrot OS recompilation and build automation
-│   ├── play.sh               # Native game launcher (Vulkan/wgpu windowed)
-│   ├── apply_patches.sh      # Submodule patch applicator
-│   └── build.bat             # Windows native build script
-├── generated/                # (Git-ignored) Recompiled C++ translation units
-└── third_party/
-    └── ps2-native-recomp/    # PS2 Static Recompiler toolchain & runtime library
+When I first booted the game natively, it launched cleanly at 60 FPS, but immediately got stuck on the infamous red screen:
+
+> *"Checking memory card (8MB)(for PlayStation®2) in MEMORY CARD slot 1. Do not remove memory card (8MB)(for PlayStation®2), controller, or reset/switch off the console."*
+
+No matter what buttons were pressed, the game refused to proceed. Here is how I investigated, reverse-engineered, and solved the issue:
+
+### 1. Digging into the Game's Scripting Engine
+I analyzed the filesystem of *Tony Hawk's Downhill Jam* (`DATAP.WAD` and `STREAMP.WAD`). Under the hood, the game relies on Neversoft & Supervillain's **QuickBasic (QB) bytecode engine** (`qb.pak`) to control everything from UI menus to game states.
+
+### 2. Identifying the Culprit Script
+By tracing the game's startup sequence inside `z_mainmenu_scripts.q`, I located the entry point `THDJ_Initial()`. Before showing any 3D graphics or main menu buttons, the engine calls a verification function: `DoMemCardChecks` (checksum hash `0x9643e815`).
+
+### 3. The Infinite Loop Discovery
+Inspecting `DoMemCardChecks`, I found it checks a global QuickBasic variable:
+```c
+BootTime_MemCardChecks_Completed (Hash: 0x29696c2d)
 ```
+- When `BootTime_MemCardChecks_Completed == 0`: The game displays the red compliance warning dialog and enters a `wait` loop waiting for low-level PS2 interrupt callbacks that do not exist on a native PC runtime. The game freezes forever.
+- When `BootTime_MemCardChecks_Completed == 1`: The function executes `if (BootTime_MemCardChecks_Completed == 1) return true;` immediately, bypassing the wait loop and transitioning smoothly to the profile creation screen!
+
+### 4. The Solution: Dynamic On-The-Fly Disc Patch
+Rather than modifying the user's original ISO file (which would alter file hashes and risk corruption), I engineered a real-time signature scanner in the disc reader (`runtime/src/disc.cpp`):
+- As the game reads sectors from `DATAP.WAD`, the runtime scans for the signature of `BootTime_MemCardChecks_Completed`.
+- When found, it automatically flips the byte from `0x00` to `0x01` directly in memory.
+- **Result:** The game cleanly transitions from boot straight into "Pick Game to Load", "Autosave Setup", and the "ENTER NAME" keyboard profile screen!
+
+In addition, I implemented missing IOP system calls (`AllocLoadMemory` #28 and `FreeLoadMemory` #29) to support the Supervillain EZPCM audio streaming engine.
 
 ---
 
-## 🛠️ Prerequisites
+## 🚀 Quick Start Guide (Beginner-Friendly)
 
-### Linux (Parrot OS / Debian / Ubuntu)
-Install Clang, CMake, Ninja, and SDL2 development libraries:
+### Step 1: Install Dependencies (Linux / Parrot OS / Ubuntu)
+Open your terminal and run:
 ```bash
 sudo apt update
 sudo apt install -y git clang cmake ninja-build libsdl2-dev pkg-config
 ```
 
-### Windows
-- [Git for Windows](https://git-scm.com/)
-- [CMake](https://cmake.org/download/) (version 3.20+)
-- [LLVM Clang](https://github.com/llvm/llvm-project/releases) or `llvm-mingw`
-- [Ninja Build System](https://ninja-build.org/)
-
----
-
-## 🚀 Building & Running
-
-### 1. Clone with Submodules
+### Step 2: Clone the Project
 ```bash
 git clone --recursive https://github.com/RHNT-FX/THDJ-RECOMP.git
 cd THDJ-RECOMP
 ```
 
-### 2. Apply Runtime Patches
+### Step 3: Apply the Patches
+Run the patch applicator to automatically inject my boot & audio fixes:
 ```bash
 ./tools/apply_patches.sh
 ```
 
-### 3. Recompiling & Building from your ISO (Linux)
-Give executable permission to the build script and supply your legal game ISO:
-```bash
-chmod +x tools/*.sh
-./tools/build.sh /path/to/downhill_jam.iso
-```
-
-### 4. Playing Natively
-Launch the game directly with Vulkan rendering and controller support:
+### Step 4: Play Natively!
+Launch the game directly:
 ```bash
 ./tools/play.sh
 ```
-*(Optionally pass a custom ISO path: `./tools/play.sh /path/to/game.iso`)*
+*(You can also specify your own ISO: `./tools/play.sh /path/to/downhill_jam.iso`)*
 
 ---
 
-## 🔧 Technical Patch Notes
+## 🎮 Controls
 
-- **Startup Memory Card Check Bypass (`patches/thdj_disc_boot_memcard_bypass.patch`):**
-  At boot, `THDJ_Initial()` in Neversoft QB bytecode (`z_mainmenu_scripts.q` inside `DATAP.WAD`) enters `DoMemCardChecks` (`0x9643e815`). If `BootTime_MemCardChecks_Completed` (`0x29696c2d`) is `0`, the game displays the PlayStation 2 TCR compliance dialog and waits indefinitely for interactive events. The patch dynamically intercepts the sector read and marks `BootTime_MemCardChecks_Completed = 1`, allowing seamless transition directly into profile selection, autosave setup, and main menu navigation.
-- **ModLoad AllocLoadMemory / FreeLoadMemory (`patches/modload_alloc_load_memory.patch`):**
-  Implements IOP `modload` syscalls `#28` and `#29` needed for Supervillain's EZPCM audio streaming engine.
+The game supports standard gamepads (Xbox, PlayStation, 8BitDo) as well as keyboard controls:
+
+| PS2 Action | Gamepad (Xbox / PS) | Keyboard |
+| :--- | :--- | :--- |
+| **Cross (A / Accept)** | A / ✕ | Space / Enter |
+| **Circle (B / Back)** | B / ◯ | Escape / Backspace |
+| **Square (Crouch / Drift)** | X / ▢ | Left Shift |
+| **Triangle (Grind)** | Y / △ | W |
+| **D-Pad / Analog** | D-Pad / Left Stick | Arrow Keys |
+| **Pause / Menu** | Start / Options | Enter / P |
+
+Custom keybindings can be configured in `config/keys.ini`.
 
 ---
 
-## 🎮 Controls Configuration
-Copy the default config template:
-```bash
-cp config/keys.ini.example keys.ini
+## 📂 Project Structure
+
+```text
+THDJRecomp/
+├── config/                   # Input mapping & configuration templates
+├── covers/                   # Box art & visual assets
+├── patches/                  # My custom engine & runtime fixes:
+│   ├── modload_alloc_load_memory.patch       # IOP audio streaming memory fix
+│   └── thdj_disc_boot_memcard_bypass.patch   # Startup memory card freeze bypass
+├── tools/
+│   ├── apply_patches.sh      # 1-click script to apply my fixes to the runtime
+│   ├── play.sh               # Easy 1-click game launcher
+│   ├── build.sh              # Full recompiler & build automation
+│   └── build.bat             # Windows native build script
+└── third_party/
+    └── ps2-native-recomp/    # PS2 Static Recompiler toolchain & runtime
 ```
-Edit `keys.ini` to customize your keyboard or controller bindings.
+
+---
+
+## 👤 Author & Research
+- **RHNT-FX** — Reverse engineering, QuickBasic script decompilation, memory card bypass patch, and native port integration.
+- Powered by the [ps2-native-recomp](https://github.com/exoteric33/ps2-native-recomp) toolchain.
 
 ---
 
 ## 📜 Legal Disclaimer
-Tony Hawk's Downhill Jam is a trademark of Activision Publishing, Inc. This project is a reverse engineering research endeavor and is not affiliated with, endorsed by, or sponsored by Activision, Toys for Bob, Visual Impact, or Sony Interactive Entertainment. All copyrighted material remains the property of their respective owners.
+Tony Hawk's Downhill Jam is a trademark of Activision Publishing, Inc. This project is a non-profit reverse-engineering research project. No copyrighted assets, proprietary game ISOs, or game binaries are distributed in this repository. Please support the original creators by using your legally owned copy of the game.
