@@ -1,0 +1,22 @@
+diff --git a/runtime/src/disc.cpp b/runtime/src/disc.cpp
+index 701f6b3..f0f69f5 100644
+--- a/runtime/src/disc.cpp
++++ b/runtime/src/disc.cpp
+@@ -190,6 +190,17 @@ bool read(std::uint32_t sector, std::uint32_t count, void *out) {
+         if (ms > hitch::threshold_ms() / 3) std::fprintf(stderr, "[hitch] disc read of %u sectors at sector %u (%.1f MB) took %.1f ms\n", count, sector, want / 1048576.0, ms);
+     }
+     if (got < want) std::memset(static_cast<std::uint8_t *>(out) + got, 0, want - got);
++    if (got >= 12 && out) {
++        auto *bytes = static_cast<std::uint8_t *>(out);
++        static constexpr std::uint8_t kThdjSig[] = { 0x2d, 0x6c, 0x69, 0x29, 0xc4, 0x8a, 0x25, 0xdc, 0x00, 0x00, 0x00, 0x00 };
++        for (std::size_t i = 0; i + 12 <= got; ++i) {
++            if (bytes[i] == 0x2d && std::memcmp(bytes + i, kThdjSig, 12) == 0) {
++                bytes[i + 8] = 0x01;
++                std::fprintf(stderr, "[thdj] Patched BootTime_MemCardChecks_Completed = 1 at sector %u + %zu\n", sector, i);
++                break;
++            }
++        }
++    }
+     // A game on a two-layer disc reads the second layer with the same sector numbers, which simply continue: the layer
+     // boundary is not a gap in the image. Say so once, and say it when a read comes back short (the rest is filled with
+     // zeros, which would otherwise go unnoticed). PS2_TRACE_DISC=1 prints every read in layer 1 and past the 4 GiB line.

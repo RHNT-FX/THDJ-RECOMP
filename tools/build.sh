@@ -48,6 +48,11 @@ if [ -n "${ISO_PATH}" ]; then
         echo "[*] Initializing ps2-native-recomp submodule..."
         git submodule update --init --recursive
     fi
+
+    # Apply runtime patches
+    if [ -f "${PROJECT_ROOT}/tools/apply_patches.sh" ]; then
+        bash "${PROJECT_ROOT}/tools/apply_patches.sh"
+    fi
     
     echo "[*] Translating PS2 MIPS instructions to C++..."
     mkdir -p "${PROJECT_ROOT}/generated"

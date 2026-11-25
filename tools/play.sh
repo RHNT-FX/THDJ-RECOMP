@@ -11,6 +11,11 @@ GAME_DIR="${PROJECT_ROOT}/third_party/ps2-native-recomp/games/thdj"
 DISC_ISO="${GAME_DIR}/disc.iso"
 MEMCARD="${GAME_DIR}/thdj.ps2"
 
+if [ -n "$1" ] && [ -f "$1" ]; then
+    DISC_ISO="$1"
+    shift
+fi
+
 if [ ! -f "${PS2RUN}" ]; then
     echo "[x] Error: Native executable not found at: ${PS2RUN}"
     echo "[!] Run recompilation first."
