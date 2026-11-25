@@ -1,0 +1,21 @@
+diff --git a/runtime/src/iop/libs.cpp b/runtime/src/iop/libs.cpp
+index f0a122a..fc100c6 100644
+--- a/runtime/src/iop/libs.cpp
++++ b/runtime/src/iop/libs.cpp
+@@ -1367,6 +1367,16 @@ void install_modload() {
+         }
+         c.r[2] = static_cast<std::uint32_t>(kErrorUnknownModule);
+     });
++    def("modload", 28, "AllocLoadMemory", [](Cpu &c) {
++        std::uint32_t mode = arg(c, 0);
++        std::uint32_t size = arg(c, 1);
++        if (size < mode && size <= 2) std::swap(mode, size);
++        c.r[2] = alloc(size, static_cast<int>(mode), arg(c, 2));
++    });
++    def("modload", 29, "FreeLoadMemory", [](Cpu &c) {
++        free(arg(c, 0));
++        c.r[2] = 0;
++    });
+ }
+ 
+ void install_vblank() {
