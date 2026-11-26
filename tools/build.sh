@@ -59,6 +59,15 @@ if [ -n "${ISO_PATH}" ]; then
     # Recompiler execution hook
     if [ -f "${PROJECT_ROOT}/third_party/ps2-native-recomp/scripts/port.sh" ]; then
         bash "${PROJECT_ROOT}/third_party/ps2-native-recomp/scripts/port.sh" thdj "${ISO_PATH}" --native-only
+        
+        # Compile recorded VU vector programs ahead-of-time (AOT)
+        if [ -x "${PROJECT_ROOT}/third_party/ps2-native-recomp/build/tools/vurecomp" ]; then
+            echo "[*] Translating PS2 Vector Unit programs (VU0/VU1) to native C++..."
+            "${PROJECT_ROOT}/third_party/ps2-native-recomp/build/tools/vurecomp" \
+                "${PROJECT_ROOT}/third_party/ps2-native-recomp/games/thdj/vu1" \
+                "${PROJECT_ROOT}/third_party/ps2-native-recomp/generated/thdj" \
+                --vu0-dir "${PROJECT_ROOT}/third_party/ps2-native-recomp/games/thdj/vu0" || true
+        fi
     else
         echo "[i] Place recompiled translation units into '${PROJECT_ROOT}/generated/'"
     fi
