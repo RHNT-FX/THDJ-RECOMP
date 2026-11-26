@@ -41,6 +41,7 @@ jobs:
           cp build/bin/THDJRecomp package_linux/
           cp tools/play.sh package_linux/
           cp config/keys.ini.example package_linux/config/
+          if [ -f config/gamecontrollerdb.txt ]; then cp config/gamecontrollerdb.txt package_linux/config/; fi
           cat << 'EOF' > package_linux/HOW_TO_PLAY.txt
 ==========================================================
    Tony Hawk's Downhill Jam PC Port (THDJRecomp)
@@ -109,6 +110,7 @@ EOF
             Copy-Item build\bin\SDL2.dll package_win\
           }
           Copy-Item config\keys.ini.example package_win\config\
+          if (Test-Path "config\gamecontrollerdb.txt") { Copy-Item config\gamecontrollerdb.txt package_win\config\ }
           Copy-Item tools\play.bat package_win\
           Set-Content -Path package_win\HOW_TO_PLAY.txt -Value @"
 ==========================================================

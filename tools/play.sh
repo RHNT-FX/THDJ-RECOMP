@@ -50,11 +50,20 @@ echo "    Launching Tony Hawk's Downhill Jam Native PC Port     "
 echo "=========================================================="
 echo "[*] Windowed Mode | Widescreen: ON | Renderer: Vulkan (wgpu)"
 echo "[*] Low Latency Mode: ON (PS2_FRAME_LATENCY=1)"
+echo "[*] VSync Presentation: ON (PS2_PRESENT_MODE=fifo)"
 echo "[*] Disc Image: ${DISC_ISO}"
 echo "[*] Memory Card: ${MEMCARD}"
 echo "=========================================================="
 
 export PS2_FRAME_LATENCY=1
+if [ -z "${PS2_PRESENT_MODE}" ]; then
+    export PS2_PRESENT_MODE="fifo"
+fi
+
+if [ -f "${PROJECT_ROOT}/config/gamecontrollerdb.txt" ]; then
+    export SDL_GAMECONTROLLERCONFIG_FILE="${PROJECT_ROOT}/config/gamecontrollerdb.txt"
+    cp "${PROJECT_ROOT}/config/gamecontrollerdb.txt" "$(dirname "${PS2RUN}")/gamecontrollerdb.txt" 2>/dev/null || true
+fi
 
 exec "${PS2RUN}" \
     --disc "${DISC_ISO}" \
