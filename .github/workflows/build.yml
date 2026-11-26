@@ -1,4 +1,4 @@
-name: Build THDJRecomp (Linux & Windows)
+name: Build & Release THDJRecomp (Linux & Windows)
 
 on:
   push:
@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [ main, master ]
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build-linux:
@@ -20,7 +23,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y clang cmake ninja-build libsdl2-dev pkg-config
+          sudo apt-get install -y clang cmake ninja-build libsdl2-dev pkg-config tar gzip
 
       - name: Configure CMake
         run: |
@@ -32,14 +35,43 @@ jobs:
       - name: Build binary
         run: cmake --build build --config Release
 
+      - name: Package Linux Standalone Bundle
+        run: |
+          mkdir -p package_linux/config
+          cp build/bin/THDJRecomp package_linux/
+          cp tools/play.sh package_linux/
+          cp config/keys.ini.example package_linux/config/
+          cat << 'EOF' > package_linux/HOW_TO_PLAY.txt
+==========================================================
+   Tony Hawk's Downhill Jam PC Port (THDJRecomp)
+==========================================================
+
+HOW TO PLAY ON LINUX:
+1. Place your legally dumped copy of 'Tony Hawk's Downhill Jam (USA)'
+   PlayStation 2 ISO in this folder and rename it to 'disc.iso'.
+   (Or pass the path: ./play.sh /path/to/game.iso)
+
+2. Run:
+   chmod +x THDJRecomp play.sh
+   ./play.sh
+
+3. Default Controls:
+   - Space / Enter: Cross (Accept / Jump)
+   - E / Esc: Circle (Back)
+   - Arrow Keys: D-Pad Navigation
+   - Connect any USB/Bluetooth Xbox or PlayStation controller for native support!
+==========================================================
+EOF
+          tar -czvf THDJRecomp-Linux-x64.tar.gz -C package_linux .
+
       - name: Upload Linux Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: THDJRecomp-Linux
-          path: build/bin/THDJRecomp
+          name: THDJRecomp-Linux-x64
+          path: THDJRecomp-Linux-x64.tar.gz
 
   build-windows:
-    name: Windows (LLVM-MinGW)
+    name: Windows (MSVC / Clang + SDL2)
     runs-on: windows-latest
     steps:
       - name: Checkout repository
@@ -50,7 +82,7 @@ jobs:
       - name: Setup Ninja
         uses: seanmiddleditch/gha-setup-ninja@master
 
-      - name: Install SDL2 (vcpkg or MSYS2)
+      - name: Install SDL2 via vcpkg
         run: |
           vcpkg integrate install
           vcpkg install sdl2:x64-windows
@@ -61,11 +93,90 @@ jobs:
             -DCMAKE_BUILD_TYPE=Release `
             -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake"
 
-      - name: Build executable
+      - name: Build Windows Executable
         run: cmake --build build --config Release
+
+      - name: Package Windows Standalone Bundle
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path package_win\config
+          Copy-Item build\bin\THDJRecomp.exe package_win\
+          # Locate and bundle SDL2.dll
+          $sdlDll = Get-ChildItem -Path "$env:VCPKG_INSTALLATION_ROOT" -Filter "SDL2.dll" -Recurse | Select-Object -First 1
+          if ($sdlDll) {
+            Copy-Item $sdlDll.FullName package_win\
+          } elseif (Test-Path "build\bin\SDL2.dll") {
+            Copy-Item build\bin\SDL2.dll package_win\
+          }
+          Copy-Item config\keys.ini.example package_win\config\
+          Copy-Item tools\play.bat package_win\
+          Set-Content -Path package_win\HOW_TO_PLAY.txt -Value @"
+==========================================================
+   Tony Hawk's Downhill Jam PC Port (THDJRecomp)
+==========================================================
+
+HOW TO PLAY ON WINDOWS:
+1. Place your legally dumped copy of 'Tony Hawk's Downhill Jam (USA)'
+   PlayStation 2 ISO in this folder and rename it to 'disc.iso'.
+   (Alternatively, drag-and-drop your .iso file onto 'play.bat').
+
+2. Double click 'play.bat' or 'THDJRecomp.exe' to launch!
+
+3. Default Controls:
+   - Space / Enter: Cross (Accept / Jump)
+   - E / Esc: Circle (Back)
+   - Arrow Keys / WASD: D-Pad / Analog Navigation
+   - Connect any USB/Bluetooth Xbox or PlayStation controller for native plug-and-play support!
+==========================================================
+"@
+          Compress-Archive -Path package_win\* -DestinationPath THDJRecomp-Windows-x64.zip
 
       - name: Upload Windows Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: THDJRecomp-Windows
-          path: build/bin/THDJRecomp.exe
+          name: THDJRecomp-Windows-x64
+          path: THDJRecomp-Windows-x64.zip
+
+  publish-release:
+    name: Publish Release Packages
+    needs: [build-linux, build-windows]
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download Linux Bundle
+        uses: actions/download-artifact@v4
+        with:
+          name: THDJRecomp-Linux-x64
+
+      - name: Download Windows Bundle
+        uses: actions/download-artifact@v4
+        with:
+          name: THDJRecomp-Windows-x64
+
+      - name: Create or Update GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: "THDJRecomp Nightly (Latest Standalone Builds)"
+          body: |
+            ## 🛹 Tony Hawk's Downhill Jam PC Port (Latest Build)
+            
+            Pre-compiled, ready-to-play standalone binaries for Windows 10/11 and 64-bit Linux.
+            
+            ### 🪟 Windows Quick Play (No Compiler Needed):
+            1. Download **`THDJRecomp-Windows-x64.zip`** below and extract the contents.
+            2. Place your legally dumped **Tony Hawk's Downhill Jam (USA)** PS2 ISO inside the folder and name it `disc.iso` (or drag & drop your ISO onto `play.bat`).
+            3. Double-click **`play.bat`** (or **`THDJRecomp.exe`**) to launch in native 60 FPS!
+            
+            ### 🐧 Linux Quick Play:
+            1. Download **`THDJRecomp-Linux-x64.tar.gz`** below and extract it (`tar -xzvf THDJRecomp-Linux-x64.tar.gz`).
+            2. Run `./play.sh /path/to/downhill_jam.iso`.
+          files: |
+            THDJRecomp-Windows-x64.zip
+            THDJRecomp-Linux-x64.tar.gz
+          draft: false
+          prerelease: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

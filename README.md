@@ -30,6 +30,17 @@ In simple terms:
 
 ---
 
+## 📥 Download Pre-compiled Windows .exe (Instant Play)
+
+Don't want to install compilers, CMake, or build from source on Windows? You can download the ready-to-play standalone bundle directly:
+
+1. Go to the [**Releases**](https://github.com/RHNT-FX/THDJ-RECOMP/releases) page (or check the [**Actions**](https://github.com/RHNT-FX/THDJ-RECOMP/actions) tab for automated builds).
+2. Download **`THDJRecomp-Windows-x64.zip`** and extract it anywhere on your PC.
+3. Place your legally dumped **Tony Hawk's Downhill Jam (USA)** PS2 ISO inside the extracted folder and name it `disc.iso` (or simply drag & drop your ISO onto `play.bat`).
+4. Double-click **`play.bat`** or **`THDJRecomp.exe`** to launch the game natively in 60 FPS!
+
+---
+
 ## 💿 Bring Your Own Game (Legal Requirement)
 
 Like other open-source recompilation projects (*Zelda64Recomp*, *MC1Recomp*, *Jak Project*), **this repository contains NO copyrighted assets, ISO images, game models, or proprietary game code**.
