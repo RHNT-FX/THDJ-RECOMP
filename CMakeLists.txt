@@ -25,9 +25,16 @@ find_package(SDL2 REQUIRED)
 
 # Include directories
 include_directories(
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${CMAKE_CURRENT_SOURCE_DIR}/config
     ${CMAKE_CURRENT_SOURCE_DIR}/patches
     ${SDL2_INCLUDE_DIRS}
+)
+
+# Native source files
+file(GLOB_RECURSE THDJ_NATIVE_SOURCES
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/*.c
 )
 
 # Generated recompilation source files
@@ -36,33 +43,13 @@ file(GLOB_RECURSE RECOMP_GENERATED_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/generated/*.c
 )
 
-# Placeholder sources if generated/ is not yet populated
-if(NOT RECOMP_GENERATED_SOURCES)
-    message(STATUS "No generated recompiled sources found yet in 'generated/'. Adding stub runner for build validation.")
-    file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/stub_entry.cpp
-        "#include <iostream>\n"
-        "#include <SDL.h>\n"
-        "int main(int argc, char* argv[]) {\n"
-        "    std::cout << \"[THDJRecomp] Tony Hawk's Downhill Jam PC Port Initialized.\\n\";\n"
-        "    std::cout << \"[THDJRecomp] Run tools/build.sh with your PS2 ISO to generate recompiled sources.\\n\";\n"
-        "    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER) != 0) {\n"
-        "        std::cerr << \"SDL_Init failed: \" << SDL_GetError() << \"\\n\";\n"
-        "        return 1;\n"
-        "    }\n"
-        "    std::cout << \"[THDJRecomp] SDL2 initialized successfully.\\n\";\n"
-        "    SDL_Quit();\n"
-        "    return 0;\n"
-        "}\n"
-    )
-    set(RECOMP_SOURCES ${CMAKE_CURRENT_BINARY_DIR}/stub_entry.cpp)
-else()
-    set(RECOMP_SOURCES ${RECOMP_GENERATED_SOURCES})
-endif()
+set(RECOMP_SOURCES ${THDJ_NATIVE_SOURCES} ${RECOMP_GENERATED_SOURCES})
 
 # Main Target Executable
 add_executable(THDJRecomp ${RECOMP_SOURCES})
 
 target_include_directories(THDJRecomp PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${CMAKE_CURRENT_SOURCE_DIR}/patches
     ${CMAKE_CURRENT_SOURCE_DIR}/generated
 )

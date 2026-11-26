@@ -1,0 +1,6 @@
+# Force GitHub Linguist to detect this repository as pure C++
+# By vendoring helper scripts and patches, GitHub counts only src/ and C++ headers
+tools/** linguist-vendored
+patches/** linguist-vendored
+*.sh linguist-vendored
+*.bat linguist-vendored
