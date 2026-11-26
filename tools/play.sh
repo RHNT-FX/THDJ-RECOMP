@@ -26,8 +26,11 @@ echo "=========================================================="
 echo "    Launching Tony Hawk's Downhill Jam Native PC Port     "
 echo "=========================================================="
 echo "[*] Windowed Mode | Widescreen: ON | Renderer: Vulkan (wgpu)"
+echo "[*] Low Latency Mode: ON (PS2_FRAME_LATENCY=1)"
 echo "[*] Memory Card: ${MEMCARD}"
 echo "=========================================================="
+
+export PS2_FRAME_LATENCY=1
 
 exec "${PS2RUN}" \
     --disc "${DISC_ISO}" \
