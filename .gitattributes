@@ -1,6 +1,11 @@
-# Force GitHub Linguist to detect this repository as pure C++
-# By vendoring helper scripts and patches, GitHub counts only src/ and C++ headers
-tools/** linguist-vendored
-patches/** linguist-vendored
-*.sh linguist-vendored
-*.bat linguist-vendored
+# Force GitHub Linguist to detect this repository as 100% C++
+# Hide tools, scripts, and build files from repository language statistics:
+tools/** linguist-vendored linguist-detectable=false
+patches/** linguist-vendored linguist-detectable=false
+*.sh linguist-vendored linguist-detectable=false
+*.bat linguist-vendored linguist-detectable=false
+CMakeLists.txt linguist-vendored linguist-detectable=false
+.recomp.json linguist-vendored linguist-detectable=false
+
+# Mark C++ source files as primary language:
+src/** linguist-detectable=true linguist-language=C++
